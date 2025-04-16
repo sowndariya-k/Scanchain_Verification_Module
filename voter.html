@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Voter Details</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-light">
+  <div class="container py-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h3>Voter Details</h3>
+      </div>
+      <div class="card-body" id="voter-details">
+        Loading voter details...
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase and Firestore SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-firestore.js";
+
+    // Firebase configuration – replace with your actual config if needed
+    const firebaseConfig = {
+      apiKey: "AIzaSyDuKns6v5EOUDL-aZXMA2i6223aquQzo1E",
+      authDomain: "voter-card-scanner.firebaseapp.com",
+      projectId: "voter-card-scanner",
+      storageBucket: "voter-card-scanner.appspot.com",
+      messagingSenderId: "665299220821",
+      appId: "1:665299220821:web:f8025478a24f5375c697dc",
+      measurementId: "G-G88F77H8VR"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const voter_id = localStorage.getItem("voter_id");
+    if (!voter_id) {
+      alert("No voter ID found. Redirecting to login page.");
+      window.location.href = "index.html";
+    }
+
+    async function fetchVoterDetails(voter_id) {
+      const voterRef = doc(db, "Voter detials", voter_id);
+      try {
+        const docSnap = await getDoc(voterRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          displayVoterDetails(data);
+          hashData(data);
+        } else {
+          document.getElementById("voter-details").innerHTML = "<div class='alert alert-danger'>No voter data found.</div>";
+        }
+      } catch (error) {
+        console.error("Error fetching voter details:", error);
+      }
+    }
+
+    function displayVoterDetails(data) {
+      const html = `
+        <p><strong>EPIC No:</strong> ${data.voter_id}</p>
+        <p><strong>Name:</strong> ${data.Name}</p>
+        <p><strong>Age:</strong> ${data.Age}</p>
+        <p><strong>Gender:</strong> ${data.Gender}</p>
+        <p><strong>Parent/Spouse:</strong> ${data["Parent/Spouse"]}</p>
+        <p><strong>State:</strong> ${data.State}</p>
+        <p><strong>District:</strong> ${data.District}</p>
+        <p><strong>Assembly Constituency:</strong> ${data["Assembly Constituency"]}</p>
+        <p><strong>Parliamentary Constituency:</strong> ${data["Parliamentary Constituency"]}</p>
+        <p><strong>Part Name:</strong> ${data["Part Name"]}</p>
+        <p><strong>Part No:</strong> ${data["Part No"]}</p>
+        <p><strong>Serial No:</strong> ${data["Serial No"]}</p>
+        <div class="mt-4 text-center">
+          <button id="confirm-btn" class="btn btn-success btn-lg">Confirm</button>
+        </div>
+      `;
+      document.getElementById("voter-details").innerHTML = html;
+      
+      // Add event listener to the confirm button
+      document.getElementById("confirm-btn").addEventListener("click", () => {
+        window.location.href = "fingerprint.html";
+      });
+    }
+
+    async function hashData(data) {
+      const encoder = new TextEncoder();
+      const encoded = encoder.encode(JSON.stringify(data));
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
+      const hashHex = Array.from(new Uint8Array(hashBuffer))
+                          .map(b => b.toString(16).padStart(2, '0'))
+                          .join('');
+      console.log("Hashed Voter Data:", hashHex);
+      localStorage.setItem("voter_data_hash", hashHex);
+      // Remove the automatic redirect
+    }
+
+    fetchVoterDetails(voter_id);
+  </script>
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
