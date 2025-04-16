@@ -21,20 +21,12 @@
   </div>
 
   <!-- Firebase and Firestore SDK -->
+  <script src="config.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js";
     import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-firestore.js";
 
-    // Firebase configuration – replace with your actual config if needed
-    const firebaseConfig = {
-      apiKey: "AIzaSyDuKns6v5EOUDL-aZXMA2i6223aquQzo1E",
-      authDomain: "voter-card-scanner.firebaseapp.com",
-      projectId: "voter-card-scanner",
-      storageBucket: "voter-card-scanner.appspot.com",
-      messagingSenderId: "665299220821",
-      appId: "1:665299220821:web:f8025478a24f5375c697dc",
-      measurementId: "G-G88F77H8VR"
-    };
+    const firebaseConfig = config.firebaseConfig;
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
