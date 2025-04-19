@@ -89,18 +89,6 @@
           return;
         }
 
-        const hasVoted = voterDoc.data().hasVoted;
-        if (hasVoted) {
-          document.getElementById("upload-status").innerHTML = `
-            <div class="alert alert-warning">
-              <strong>Already Voted!</strong><br>
-              You have already cast your vote.<br>
-              <button onclick="window.location.href='index.html'" class="btn btn-primary mt-3">Go Back</button>
-            </div>
-          `;
-          return;
-        }
-
         const storedHash = voterDoc.data().hash;
         
         // Debug: Log the stored hash to console

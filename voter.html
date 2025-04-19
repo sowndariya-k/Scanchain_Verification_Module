@@ -99,11 +99,23 @@
         </div>
       `;
       document.getElementById("voter-details").innerHTML = html;
+      const hasVoted = voterDoc.data().hasVoted;
+        if (hasVoted) {
+          document.getElementById("upload-status").innerHTML = `
+            <div class="alert alert-warning">
+              <strong>Already Voted!</strong><br>
+              The voter have already casted their vote.<br>
+              <button onclick="window.location.href='index.html'" class="btn btn-primary mt-3">Go Back</button>
+            </div>
+          `;
+          return;
+        }else{
+          // Add event listener to the confirm button
+          document.getElementById("confirm-btn").addEventListener("click", () => {
+            window.location.href = "fingerprint.html";
+          });
+        }
       
-      // Add event listener to the confirm button
-      document.getElementById("confirm-btn").addEventListener("click", () => {
-        window.location.href = "fingerprint.html";
-      });
     }
 
     async function hashData(data) {
