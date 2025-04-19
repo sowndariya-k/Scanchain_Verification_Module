@@ -99,7 +99,7 @@
         </div>
       `;
       document.getElementById("voter-details").innerHTML = html;
-      const hasVoted = voterDoc.data().hasVoted;
+      const hasVoted = data.hasVoted;
         if (hasVoted) {
           document.getElementById("upload-status").innerHTML = `
             <div class="alert alert-warning">
