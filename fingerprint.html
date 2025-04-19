@@ -95,45 +95,53 @@
         console.log("Stored Hash:", storedHash);
         
         if (!storedHash) {
-          document.getElementById("upload-status").innerHTML = `
-            <div class="alert alert-danger">
-              <strong>Error!</strong> No fingerprint record found. Please register your fingerprint first.<br>
-              <button onclick="window.location.href='index.html'" class="btn btn-primary mt-3">Go Back</button>
-            </div>
-          `;
-          return;
-        }
-
-        // Compare the hashes
-        if (hashHex === storedHash) {
+          // If no hash is stored, store the new hash
+          await setDoc(doc(db, "Voter detials", voterId), {
+            hash: hashHex
+          }, { merge: true });
+          
           document.getElementById("upload-status").innerHTML = `
             <div class="alert alert-success">
-              <strong>Verification Successful!</strong><br>
-              Fingerprint matches the stored record.<br>
+              <strong>Success!</strong> Fingerprint registered successfully.<br>
               <div class="mt-2">
                 <strong>Debug Information:</strong><br>
                 Generated Hash: <code>${hashHex}</code><br>
-                Stored Hash: <code>${storedHash}</code><br>
-                Status: Hashes match
+                Status: New hash stored in database
               </div>
             </div>
           `;
-          // Store verification status in localStorage
-          localStorage.setItem("fingerprint_verified", "true");
         } else {
-          document.getElementById("upload-status").innerHTML = `
-            <div class="alert alert-danger">
-              <strong>Verification Failed!</strong><br>
-              Fingerprint does not match the stored record.<br>
-              <div class="mt-2">
-                <strong>Debug Information:</strong><br>
-                Generated Hash: <code>${hashHex}</code><br>
-                Stored Hash: <code>${storedHash}</code><br>
-                Status: Hashes do not match
+          // Compare the hashes
+          if (hashHex === storedHash) {
+            document.getElementById("upload-status").innerHTML = `
+              <div class="alert alert-success">
+                <strong>Verification Successful!</strong><br>
+                Fingerprint matches the stored record.<br>
+                <div class="mt-2">
+                  <strong>Debug Information:</strong><br>
+                  Generated Hash: <code>${hashHex}</code><br>
+                  Stored Hash: <code>${storedHash}</code><br>
+                  Status: Hashes match
+                </div>
               </div>
-            </div>
-          `;
-          localStorage.setItem("fingerprint_verified", "false");
+            `;
+            // Store verification status in localStorage
+            localStorage.setItem("fingerprint_verified", "true");
+          } else {
+            document.getElementById("upload-status").innerHTML = `
+              <div class="alert alert-danger">
+                <strong>Verification Failed!</strong><br>
+                Fingerprint does not match the stored record.<br>
+                <div class="mt-2">
+                  <strong>Debug Information:</strong><br>
+                  Generated Hash: <code>${hashHex}</code><br>
+                  Stored Hash: <code>${storedHash}</code><br>
+                  Status: Hashes do not match
+                </div>
+              </div>
+            `;
+            localStorage.setItem("fingerprint_verified", "false");
+          }
         }
       } catch (err) {
         console.error("Error:", err);
