@@ -81,7 +81,31 @@
     }
 
     function displayVoterDetails(data) {
-      const html = `
+      const hasVoted = data.hasVoted;
+      if(hasVoted){
+        const html = `
+        <p><strong>EPIC No:</strong> ${data.voter_id}</p>
+        <p><strong>Name:</strong> ${data.Name}</p>
+        <p><strong>Age:</strong> ${data.Age}</p>
+        <p><strong>Gender:</strong> ${data.Gender}</p>
+        <p><strong>Parent/Spouse:</strong> ${data["Parent/Spouse"]}</p>
+        <p><strong>State:</strong> ${data.State}</p>
+        <p><strong>District:</strong> ${data.District}</p>
+        <p><strong>Assembly Constituency:</strong> ${data["Assembly Constituency"]}</p>
+        <p><strong>Parliamentary Constituency:</strong> ${data["Parliamentary Constituency"]}</p>
+        <p><strong>Part Name:</strong> ${data["Part Name"]}</p>
+        <p><strong>Part No:</strong> ${data["Part No"]}</p>
+        <p><strong>Serial No:</strong> ${data["Serial No"]}</p>
+        <div class="alert alert-warning">
+              <strong>Already Voted!</strong><br>
+              The voter have already casted their vote.<br>
+              <button onclick="window.location.href='index.html'" class="btn btn-primary mt-3">Go Back</button>
+            </div>
+      `;
+        document.getElementById("voter-details").innerHTML = html;
+
+      }else{
+        const html = `
         <p><strong>EPIC No:</strong> ${data.voter_id}</p>
         <p><strong>Name:</strong> ${data.Name}</p>
         <p><strong>Age:</strong> ${data.Age}</p>
@@ -99,23 +123,11 @@
         </div>
       `;
       document.getElementById("voter-details").innerHTML = html;
-      const hasVoted = data.hasVoted;
-        if (hasVoted) {
-          document.getElementById("voter-details").innerHTML = `
-            <div class="alert alert-warning">
-              <strong>Already Voted!</strong><br>
-              The voter have already casted their vote.<br>
-              <button onclick="window.location.href='index.html'" class="btn btn-primary mt-3">Go Back</button>
-            </div>
-          `;
-          return;
-        }else{
-          // Add event listener to the confirm button
-          document.getElementById("confirm-btn").addEventListener("click", () => {
+      // Add event listener to the confirm button
+      document.getElementById("confirm-btn").addEventListener("click", () => {
             window.location.href = "fingerprint.html";
           });
-        }
-      
+      }
     }
 
     async function hashData(data) {
