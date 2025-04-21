@@ -116,56 +116,10 @@
                 Stored Hash: <code>${storedHash}</code><br>
                 Status: Hashes match
               </div>
-              <button id="sendVoteBtn" class="btn btn-primary mt-3">Send Vote Data</button>
             </div>
           `;
           // Store verification status in localStorage
           localStorage.setItem("fingerprint_verified", "true");
-
-          // Add click handler for the Send button
-          document.getElementById("sendVoteBtn").addEventListener("click", async () => {
-            try {
-              // Get voter details from Firestore
-              const voterData = voterDoc.data();
-              
-              // Prepare data to send
-              const voteData = {
-                voterId: voterId,
-                voterName: voterData.name,
-                voterAge: voterData.age,
-                voterAddress: voterData.address,
-                verificationStatus: true,
-                timestamp: new Date().toISOString()
-              };
-
-              // Send data to the other website (assuming it's running on localhost:3000)
-              const response = await fetch('http://localhost:3000/receive-vote', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(voteData)
-              });
-
-              if (response.ok) {
-                document.getElementById("upload-status").innerHTML += `
-                  <div class="alert alert-success mt-3">
-                    <strong>Success!</strong> Vote data sent successfully to the voting system.
-                  </div>
-                `;
-              } else {
-                throw new Error('Failed to send vote data');
-              }
-            } catch (error) {
-              console.error('Error sending vote data:', error);
-              document.getElementById("upload-status").innerHTML += `
-                <div class="alert alert-danger mt-3">
-                  <strong>Error!</strong> Failed to send vote data. Please try again.<br>
-                  <small>Technical details: ${error.message}</small>
-                </div>
-              `;
-            }
-          });
         } else {
           document.getElementById("upload-status").innerHTML = `
             <div class="alert alert-danger">
