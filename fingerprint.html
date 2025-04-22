@@ -28,7 +28,7 @@
   <script src="config.js"></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-firestore.js";
 
     // Check if we're in a production environment (Netlify)
     let firebaseConfig;
@@ -116,10 +116,80 @@
                 Stored Hash: <code>${storedHash}</code><br>
                 Status: Hashes match
               </div>
+              <button id="assignStationBtn" class="btn btn-primary mt-3">Assign to Station</button>
             </div>
           `;
           // Store verification status in localStorage
           localStorage.setItem("fingerprint_verified", "true");
+
+          
+          // Add click handler for the Assign Station button
+          document.getElementById("assignStationBtn").addEventListener("click", async () => {
+            try {
+              // Get all stations from Firestore
+              const stationsRef = collection(db, "stations");
+              const stationsSnapshot = await getDocs(stationsRef);
+              
+              // Find active stations
+              const activeStations = [];
+              stationsSnapshot.forEach(doc => {
+                const stationData = doc.data();
+                if (stationData.session === "active") {
+                  activeStations.push({
+                    id: doc.id,
+                    lastActive: stationData.lastActive || 0
+                  });
+                }
+              });
+              
+              // Sort active stations by lastActive (oldest first)
+              activeStations.sort((a, b) => a.lastActive - b.lastActive);
+              
+              if (activeStations.length === 0) {
+                document.getElementById("upload-status").innerHTML += `
+                  <div class="alert alert-warning mt-3">
+                    <strong>No Active Stations!</strong><br>
+                    There are no active voting stations available at the moment.<br>
+                    Please try again later.
+                  </div>
+                `;
+                return;
+              }
+              
+              // Get the station with the oldest lastActive timestamp
+              const selectedStation = activeStations[0];
+              
+              // Update the station with the voter ID and current timestamp
+              const currentTime = Date.now();
+              await setDoc(doc(db, "stations", selectedStation.id), {
+                session: "active",
+                lastActive: currentTime,
+                currentVoterId: voterId
+              }, { merge: true });
+              
+              // Update voter's hasVoted status
+              await setDoc(doc(db, "Voter detials", voterId), {
+                hasVoted: true,
+                assignedStation: selectedStation.id
+              }, { merge: true });
+              
+              document.getElementById("upload-status").innerHTML += `
+                <div class="alert alert-success mt-3">
+                  <strong>Station Assigned!</strong><br>
+                  You have been assigned to <strong>${selectedStation.id}</strong>.<br>
+                  Please proceed to that station to cast your vote.
+                </div>
+              `;
+            } catch (error) {
+              console.error('Error assigning station:', error);
+              document.getElementById("upload-status").innerHTML += `
+                <div class="alert alert-danger mt-3">
+                  <strong>Error!</strong> Failed to assign station. Please try again.<br>
+                  <small>Technical details: ${error.message}</small>
+                </div>
+              `;
+            }
+          });
         } else {
           document.getElementById("upload-status").innerHTML = `
             <div class="alert alert-danger">
