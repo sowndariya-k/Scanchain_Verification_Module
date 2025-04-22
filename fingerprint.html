@@ -168,105 +168,86 @@
           document.getElementById("assignStationBtn").addEventListener("click", async () => {
             try {
               debugLog("Assign Station button clicked");
-              
+
               // Get all stations from Realtime Database
-              debugLog("Fetching stations from Realtime Database");
               const stationsRef = ref(rtdb, "stations");
               const stationsSnapshot = await get(stationsRef);
-              
+
               if (!stationsSnapshot.exists()) {
                 debugLog("No stations found in database");
                 document.getElementById("upload-status").innerHTML += `
                   <div class="alert alert-warning mt-3">
                     <strong>No Stations Found!</strong><br>
-                    There are no voting stations in the database.<br>
                     Please contact an administrator.
                   </div>
                 `;
                 return;
               }
-              
+
               const stationsData = stationsSnapshot.val();
-              debugLog("Stations data from Realtime Database", stationsData);
-              
+              debugLog("Stations data", stationsData);
+
               // Find active stations
-              const activeStations = [];
-              Object.entries(stationsData).forEach(([stationId, stationData]) => {
-                debugLog(`Checking station ${stationId}`, stationData);
-                if (stationData.session === "active") {
-                  activeStations.push({
-                    id: stationId,
-                    lastActive: stationData.lastActive || 0
-                  });
-                }
-              });
-              
-              debugLog("Active stations found", activeStations);
-              
-              // Sort active stations by lastActive (oldest first)
-              activeStations.sort((a, b) => a.lastActive - b.lastActive);
-              
+              const activeStations = Object.entries(stationsData)
+                .filter(([_, data]) => data.session === "active")
+                .map(([id, data]) => ({
+                  id,
+                  lastActive: data.lastActive || 0,
+                  currentVoterIds: data.currentVoterIds || []
+                }));
+
               if (activeStations.length === 0) {
-                debugLog("No active stations available");
                 document.getElementById("upload-status").innerHTML += `
                   <div class="alert alert-warning mt-3">
                     <strong>No Active Stations!</strong><br>
-                    There are no active voting stations available at the moment.<br>
                     Please try again later.
                   </div>
                 `;
                 return;
               }
-              
-              // Get the station with the oldest lastActive timestamp
+
+              // Sort by lastActive timestamp
+              activeStations.sort((a, b) => a.lastActive - b.lastActive);
               const selectedStation = activeStations[0];
-              debugLog("Selected station for assignment", selectedStation);
-              
-              // Update the station with the voter ID and current timestamp
               const currentTime = Date.now();
-              debugLog("Updating station in Realtime Database", {
-                stationId: selectedStation.id,
-                currentVoterId: voterId,
-                lastActive: currentTime
-              });
-              
+
+              // Update station with new voter ID
+              const updatedVoterList = [...selectedStation.currentVoterIds, voterId];
               await set(ref(rtdb, `stations/${selectedStation.id}`), {
                 session: "active",
                 lastActive: currentTime,
-                currentVoterId: voterId
+                currentVoterIds: updatedVoterList
               });
-              
-              // Update voter's hasVoted status in Firestore
-              debugLog("Updating voter status in Firestore", {
-                voterId,
-                hasVoted: true,
-                assignedStation: selectedStation.id
-              });
-              
+
+              // Update Firestore with verification status
               await setDoc(doc(db, "Voter detials", voterId), {
-                hasVoted: true,
-                assignedStation: selectedStation.id
-              }, { merge: true });
-              
+                ...voterData,
+                hasVerified: true,
+                verifiedAt: currentTime
+              });
+
+              debugLog("Voter assigned and verified successfully", {
+                station: selectedStation.id,
+                voterId,
+                hasVerified: true,
+                verifiedAt: currentTime
+              });
+
               document.getElementById("upload-status").innerHTML += `
                 <div class="alert alert-success mt-3">
                   <strong>Station Assigned!</strong><br>
                   You have been assigned to <strong>${selectedStation.id}</strong>.<br>
-                  Please proceed to that station to cast your vote.
+                  Verification timestamp has been saved.
                 </div>
               `;
-              debugLog("Station assignment completed successfully");
             } catch (error) {
-              console.error('Error assigning station:', error);
-              debugLog("Error assigning station", { error: error.message, stack: error.stack });
+              debugLog("Error during assignment", error);
               document.getElementById("upload-status").innerHTML += `
-                <div class="alert alert-danger mt-3">
-                  <strong>Error!</strong> Failed to assign station. Please try again.<br>
-                  <small>Technical details: ${error.message}</small>
-                </div>
+                <div class="alert alert-danger mt-3">Error assigning to station. Please try again.</div>
               `;
             }
           });
+
         } else {
           document.getElementById("upload-status").innerHTML = `
             <div class="alert alert-danger">
