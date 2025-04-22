@@ -18,10 +18,6 @@
         <p>Upload your fingerprint scan for two-step verification:</p>
         <input type="file" id="finger-upload" accept="image/*" class="form-control" />
         <div id="upload-status" class="mt-3"></div>
-        <div id="debug-info" class="mt-3 p-3 bg-light border rounded">
-          <h5>Debug Information</h5>
-          <div id="debug-content"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -34,21 +30,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-firestore.js";
     import { getDatabase, ref, get, set, onValue } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-database.js";
-
-    // Debug function to log and display information
-    function debugLog(message, data = null) {
-      console.log(message, data);
-      const debugContent = document.getElementById("debug-content");
-      const timestamp = new Date().toLocaleTimeString();
-      
-      let displayMessage = `<div class="mb-2"><strong>${timestamp}:</strong> ${message}`;
-      if (data) {
-        displayMessage += `<pre class="mt-1 p-2 bg-white border rounded">${JSON.stringify(data, null, 2)}</pre>`;
-      }
-      displayMessage += '</div>';
-      
-      debugContent.innerHTML = displayMessage + debugContent.innerHTML;
-    }
 
     // Check if we're in a production environment (Netlify)
     let firebaseConfig;
@@ -75,24 +56,18 @@
       }
     }
 
-    debugLog("Firebase config loaded", firebaseConfig);
-
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const rtdb = getDatabase(app);
 
     // Check if voter ID exists in localStorage
     const voterId = localStorage.getItem("voter_id");
-    debugLog("Voter ID from localStorage", voterId);
 
     document.getElementById("finger-upload").addEventListener("change", async function (e) {
       const file = e.target.files[0];
       if (!file) {
-        debugLog("No file selected");
         return;
       }
-
-      debugLog("File selected", { name: file.name, size: file.size, type: file.type });
 
       // Retrieve the voter ID
       const voterId = localStorage.getItem("voter_id");
@@ -100,7 +75,6 @@
         document.getElementById("upload-status").innerHTML = `
           <div class="alert alert-danger">Error: Voter ID not found. Please login first.</div>
         `;
-        debugLog("Error: Voter ID not found in localStorage");
         return;
       }
 
@@ -111,27 +85,19 @@
         const hashHex = Array.from(new Uint8Array(hashBuffer))
                           .map(b => b.toString(16).padStart(2, '0'))
                           .join('');
-        
-        debugLog("Generated Hash", hashHex);
 
         // Get the stored hash from Firestore
-        debugLog("Fetching voter details from Firestore", { voterId });
         const voterDoc = await getDoc(doc(db, "Voter detials", voterId));
         
         if (!voterDoc.exists()) {
           document.getElementById("upload-status").innerHTML = `
             <div class="alert alert-danger">Error: Voter record not found in database.</div>
           `;
-          debugLog("Error: Voter record not found in Firestore", { voterId });
           return;
         }
 
         const voterData = voterDoc.data();
-        debugLog("Voter data from Firestore", voterData);
-        
         const storedHash = voterData.hash;
-        
-        debugLog("Stored Hash from Firestore", storedHash);
         
         if (!storedHash) {
           document.getElementById("upload-status").innerHTML = `
@@ -140,7 +106,6 @@
               <button onclick="window.location.href='index.html'" class="btn btn-primary mt-3">Go Back</button>
             </div>
           `;
-          debugLog("Error: No fingerprint hash found in voter record");
           return;
         }
 
@@ -150,131 +115,136 @@
             <div class="alert alert-success">
               <strong>Verification Successful!</strong><br>
               Fingerprint matches the stored record.<br>
-              <div class="mt-2">
-                <strong>Debug Information:</strong><br>
-                Generated Hash: <code>${hashHex}</code><br>
-                Stored Hash: <code>${storedHash}</code><br>
-                Status: Hashes match
-              </div>
               <button id="assignStationBtn" class="btn btn-primary mt-3">Assign to Station</button>
             </div>
           `;
           // Store verification status in localStorage
           localStorage.setItem("fingerprint_verified", "true");
-          debugLog("Fingerprint verification successful");
 
-          
           // Add click handler for the Assign Station button
-          document.getElementById("assignStationBtn").addEventListener("click", async () => {
-            try {
-              debugLog("Assign Station button clicked");
-
-              // Get all stations from Realtime Database
-              const stationsRef = ref(rtdb, "stations");
-              const stationsSnapshot = await get(stationsRef);
-
-              if (!stationsSnapshot.exists()) {
-                debugLog("No stations found in database");
-                document.getElementById("upload-status").innerHTML += `
-                  <div class="alert alert-warning mt-3">
-                    <strong>No Stations Found!</strong><br>
-                    Please contact an administrator.
-                  </div>
-                `;
-                return;
-              }
-
-              const stationsData = stationsSnapshot.val();
-              debugLog("Stations data", stationsData);
-
-              // Find active stations
-              const activeStations = Object.entries(stationsData)
-                .filter(([_, data]) => data.session === "active")
-                .map(([id, data]) => ({
-                  id,
-                  lastActive: data.lastActive || 0,
-                  currentVoterIds: data.currentVoterIds || []
-                }));
-
-              if (activeStations.length === 0) {
-                document.getElementById("upload-status").innerHTML += `
-                  <div class="alert alert-warning mt-3">
-                    <strong>No Active Stations!</strong><br>
-                    Please try again later.
-                  </div>
-                `;
-                return;
-              }
-
-              // Sort by lastActive timestamp
-              activeStations.sort((a, b) => a.lastActive - b.lastActive);
-              const selectedStation = activeStations[0];
-              const currentTime = Date.now();
-
-              // Update station with new voter ID
-              const updatedVoterList = [...selectedStation.currentVoterIds, voterId];
-              await set(ref(rtdb, `stations/${selectedStation.id}`), {
-                session: "active",
-                lastActive: currentTime,
-                currentVoterIds: updatedVoterList
-              });
-
-              // Update Firestore with verification status
-              await setDoc(doc(db, "Voter detials", voterId), {
-                ...voterData,
-                hasVerified: true,
-                verifiedAt: currentTime
-              });
-
-              debugLog("Voter assigned and verified successfully", {
-                station: selectedStation.id,
-                voterId,
-                hasVerified: true,
-                verifiedAt: currentTime
-              });
-
-              document.getElementById("upload-status").innerHTML += `
-                <div class="alert alert-success mt-3">
-                  <strong>Station Assigned!</strong><br>
-                  You have been assigned to <strong>${selectedStation.id}</strong>.<br>
-                  Verification timestamp has been saved.
-                </div>
-              `;
-            } catch (error) {
-              debugLog("Error during assignment", error);
-              document.getElementById("upload-status").innerHTML += `
-                <div class="alert alert-danger mt-3">Error assigning to station. Please try again.</div>
-              `;
-            }
-          });
-
+          document.getElementById("assignStationBtn").addEventListener("click", assignToStation);
         } else {
           document.getElementById("upload-status").innerHTML = `
             <div class="alert alert-danger">
               <strong>Verification Failed!</strong><br>
-              Fingerprint does not match the stored record.<br>
-              <div class="mt-2">
-                <strong>Debug Information:</strong><br>
-                Generated Hash: <code>${hashHex}</code><br>
-                Stored Hash: <code>${storedHash}</code><br>
-                Status: Hashes do not match
-              </div>
+              Fingerprint does not match the stored record.
             </div>
           `;
           localStorage.setItem("fingerprint_verified", "false");
-          debugLog("Fingerprint verification failed - hashes do not match");
         }
       } catch (err) {
         console.error("Error:", err);
-        debugLog("Error processing fingerprint", { error: err.message, stack: err.stack });
         document.getElementById("upload-status").innerHTML = `
           <div class="alert alert-danger">
-            Error processing fingerprint. Please try again.<br>
-            <small>Technical details: ${err.message}</small>
+            Error processing fingerprint. Please try again.
           </div>
         `;
       }
     });
+
+    async function assignToStation() {
+      const voterId = localStorage.getItem("voter_id");
+      const assignBtn = document.getElementById("assignStationBtn");
+      
+      try {
+        // Disable the button to prevent multiple clicks
+        assignBtn.disabled = true;
+        assignBtn.textContent = "Processing...";
+
+        // Get all stations from Realtime Database
+        const stationsRef = ref(rtdb, "stations");
+        const stationsSnapshot = await get(stationsRef);
+
+        if (!stationsSnapshot.exists()) {
+          document.getElementById("upload-status").innerHTML += `
+            <div class="alert alert-warning mt-3">
+              <strong>No Stations Found!</strong><br>
+              Please contact an administrator.
+            </div>
+          `;
+          // Re-enable the button with retry option
+          assignBtn.disabled = false;
+          assignBtn.textContent = "Retry Assign to Station";
+          return;
+        }
+
+        const stationsData = stationsSnapshot.val();
+
+        // Find active stations
+        const activeStations = Object.entries(stationsData)
+          .filter(([_, data]) => data.session === "active")
+          .map(([id, data]) => ({
+            id,
+            lastActive: data.lastActive || 0,
+            currentVoterIds: data.currentVoterIds || []
+          }));
+
+        if (activeStations.length === 0) {
+          document.getElementById("upload-status").innerHTML += `
+            <div class="alert alert-warning mt-3">
+              <strong>No Active Stations Available!</strong><br>
+              <button id="retryBtn" class="btn btn-warning mt-2">Retry</button>
+            </div>
+          `;
+          
+          // Add retry functionality
+          document.getElementById("retryBtn").addEventListener("click", () => {
+            document.querySelector(".alert-warning").remove();
+            assignBtn.disabled = false;
+            assignBtn.textContent = "Assign to Station";
+          });
+          return;
+        }
+
+        // Sort by lastActive timestamp
+        activeStations.sort((a, b) => a.lastActive - b.lastActive);
+        const selectedStation = activeStations[0];
+        const currentTime = Date.now();
+
+        // Update station with new voter ID
+        const updatedVoterList = [...selectedStation.currentVoterIds, voterId];
+        await set(ref(rtdb, `stations/${selectedStation.id}`), {
+          session: "active",
+          lastActive: currentTime,
+          currentVoterIds: updatedVoterList
+        });
+
+        // Get voter data again to ensure we have the latest
+        const voterDoc = await getDoc(doc(db, "Voter detials", voterId));
+        const voterData = voterDoc.data();
+
+        // Update Firestore with verification status
+        await setDoc(doc(db, "Voter detials", voterId), {
+          ...voterData,
+          hasVerified: true,
+          verifiedAt: currentTime
+        });
+
+        document.getElementById("upload-status").innerHTML += `
+          <div class="alert alert-success mt-3">
+            <strong>Station Assigned Successfully!</strong><br>
+            You have been assigned to <strong>${selectedStation.id}</strong>.
+            <div class="mt-3">
+              <button onclick="window.location.href='index.html'" class="btn btn-primary">Back to Home</button>
+            </div>
+          </div>
+        `;
+
+        // Keep the button disabled after successful assignment
+        assignBtn.disabled = true;
+        assignBtn.textContent = "Assigned to Station";
+      } catch (error) {
+        console.error("Assignment error:", error);
+        document.getElementById("upload-status").innerHTML += `
+          <div class="alert alert-danger mt-3">
+            Error assigning to station. Please try again.
+          </div>
+        `;
+        // Re-enable the button for retry
+        assignBtn.disabled = false;
+        assignBtn.textContent = "Retry Assign to Station";
+      }
+    }
   </script>
   <!-- Bootstrap JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
