@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Voting Station Manager</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .station-card {
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .station-card.active {
+            border-color: #28a745;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+        }
+        .station-card.inactive {
+            border-color: #dc3545;
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+        }
+        .voter-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3>Voting Station Manager</h3>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col">
+                        <button id="activateAllBtn" class="btn btn-success">Activate All Stations</button>
+                        <button id="deactivateAllBtn" class="btn btn-danger ms-2">Deactivate All Stations</button>
+                    </div>
+                </div>
+                <div id="stations-container" class="row">
+                    <!-- Stations will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, onSnapshot, getDocs } from "https://www.gstatic.com/firebasejs/9.10.0/firebase-firestore.js";
+
+        // Initialize Firebase
+        const app = initializeApp(config.firebaseConfig);
+        const db = getFirestore(app);
+
+        // Function to format timestamp
+        function formatDate(timestamp) {
+            if (!timestamp) return "Never";
+            return new Date(timestamp).toLocaleString();
+        }
+
+        // Function to display stations
+        function displayStations(stations) {
+            const container = document.getElementById('stations-container');
+            container.innerHTML = '';
+
+            // Sort stations by ID
+            const sortedStations = Object.entries(stations).sort((a, b) => {
+                const numA = parseInt(a[0].replace('station', ''));
+                const numB = parseInt(b[0].replace('station', ''));
+                return numA - numB;
+            });
+
+            sortedStations.forEach(([stationId, stationData]) => {
+                const isActive = stationData.session === "active";
+                const cardClass = isActive ? "active" : "inactive";
+                
+                const stationCard = document.createElement('div');
+                stationCard.className = 'col-md-4 mb-3';
+                stationCard.innerHTML = `
+                    <div class="card station-card ${cardClass}">
+                        <div class="card-header ${isActive ? 'bg-success' : 'bg-danger'} text-white">
+                            <h5 class="mb-0">${stationId}</h5>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Status:</strong> ${stationData.session}</p>
+                            <p><strong>Last Active:</strong> ${formatDate(stationData.lastActive)}</p>
+                            
+                            ${stationData.currentVoterId ? `
+                                <div class="voter-info">
+                                    <p><strong>Current Voter:</strong> ${stationData.currentVoterId}</p>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="mt-3">
+                                <button class="btn btn-sm ${isActive ? 'btn-danger' : 'btn-success'} toggle-station" 
+                                        data-station="${stationId}" 
+                                        data-action="${isActive ? 'deactivate' : 'activate'}">
+                                    ${isActive ? 'Deactivate' : 'Activate'}
+                                </button>
+                                
+                                ${stationData.currentVoterId ? `
+                                    <button class="btn btn-sm btn-warning ms-2 clear-voter" 
+                                            data-station="${stationId}">
+                                        Clear Voter
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(stationCard);
+            });
+
+            // Add event listeners to buttons
+            document.querySelectorAll('.toggle-station').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const stationId = button.getAttribute('data-station');
+                    const action = button.getAttribute('data-action');
+                    
+                    try {
+                        await setDoc(doc(db, "stations", stationId), {
+                            session: action === 'activate' ? 'active' : 'inactive',
+                            lastActive: action === 'activate' ? Date.now() : 0
+                        }, { merge: true });
+                    } catch (error) {
+                        console.error(`Error ${action}ing station:`, error);
+                        alert(`Failed to ${action} station. Please try again.`);
+                    }
+                });
+            });
+
+            document.querySelectorAll('.clear-voter').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const stationId = button.getAttribute('data-station');
+                    
+                    try {
+                        await setDoc(doc(db, "stations", stationId), {
+                            currentVoterId: null
+                        }, { merge: true });
+                    } catch (error) {
+                        console.error('Error clearing voter:', error);
+                        alert('Failed to clear voter. Please try again.');
+                    }
+                });
+            });
+        }
+
+        // Function to activate all stations
+        async function activateAllStations() {
+            try {
+                const stationsRef = collection(db, "stations");
+                const stationsSnapshot = await getDocs(stationsRef);
+                
+                const batch = [];
+                stationsSnapshot.forEach(doc => {
+                    batch.push(setDoc(doc.ref, {
+                        session: "active",
+                        lastActive: Date.now()
+                    }, { merge: true }));
+                });
+                
+                await Promise.all(batch);
+                alert('All stations activated successfully!');
+            } catch (error) {
+                console.error('Error activating all stations:', error);
+                alert('Failed to activate all stations. Please try again.');
+            }
+        }
+
+        // Function to deactivate all stations
+        async function deactivateAllStations() {
+            try {
+                const stationsRef = collection(db, "stations");
+                const stationsSnapshot = await getDocs(stationsRef);
+                
+                const batch = [];
+                stationsSnapshot.forEach(doc => {
+                    batch.push(setDoc(doc.ref, {
+                        session: "inactive",
+                        lastActive: 0,
+                        currentVoterId: null
+                    }, { merge: true }));
+                });
+                
+                await Promise.all(batch);
+                alert('All stations deactivated successfully!');
+            } catch (error) {
+                console.error('Error deactivating all stations:', error);
+                alert('Failed to deactivate all stations. Please try again.');
+            }
+        }
+
+        // Add event listeners to global buttons
+        document.getElementById('activateAllBtn').addEventListener('click', activateAllStations);
+        document.getElementById('deactivateAllBtn').addEventListener('click', deactivateAllStations);
+
+        // Listen for real-time updates
+        const stationsRef = collection(db, "stations");
+        onSnapshot(stationsRef, (snapshot) => {
+            const stations = {};
+            snapshot.forEach((doc) => {
+                stations[doc.id] = doc.data();
+            });
+            displayStations(stations);
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 
