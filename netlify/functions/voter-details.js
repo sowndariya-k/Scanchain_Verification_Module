@@ -1,41 +1,30 @@
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: process.env.FIREBASE_DATABASE_URL // If you need Realtime Database
-  });
+let db;
+
+try {
+  if (!admin.apps.length) {
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      databaseURL: process.env.FIREBASE_DATABASE_URL // Add this if you use Realtime Database
+    });
+  }
+  db = admin.firestore();
+} catch (error) {
+  console.error("Firebase Admin SDK Initialization Error:", error);
+  return {
+    statusCode: 500,
+    body: JSON.stringify({ error: "Firebase Admin SDK Initialization Failed", details: error.message }),
+  };
 }
 
-const db = admin.firestore();
-
 exports.handler = async (event) => {
-  if (event.httpMethod !== 'GET') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
-  }
-
-  const voterId = event.queryStringParameters.voter_id;
-
-  if (!voterId) {
-    return { statusCode: 400, body: 'Missing voter_id parameter' };
-  }
-
-  try {
-    const docRef = db.collection('Voter detials').doc(voterId);
-    const docSnap = await docRef.get();
-
-    if (docSnap.exists) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify(docSnap.data()),
-      };
-    } else {
-      return { statusCode: 404, body: 'Voter details not found' };
-    }
-  } catch (error) {
-    console.error('Error fetching voter details:', error);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to fetch voter details' }) };
-  }
-};
+    console.log("Function invoked!");
+    console.log("FIREBASE_SERVICE_ACCOUNT:", process.env.FIREBASE_SERVICE_ACCOUNT);
+  
+    return {
+      statusCode: 500, // Intentionally returning an error to see the output
+      body: JSON.stringify({ error: "Basic function test", account: process.env.FIREBASE_SERVICE_ACCOUNT ? "Present" : "Missing" }),
+    };
+  };
