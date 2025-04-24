@@ -6,6 +6,19 @@
   "scripts": {
     "build": "node build.js"
   },
-  "dependencies": {},
-  "devDependencies": {}
-} 
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sowndariya-k/Scanchain_Verification_Module.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sowndariya-k/Scanchain_Verification_Module/issues"
+  },
+  "homepage": "https://github.com/sowndariya-k/Scanchain_Verification_Module#readme",
+  "dependencies": {
+    "firebase-admin": "^13.3.0"
+  }
+}
