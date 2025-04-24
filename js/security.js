@@ -13,7 +13,7 @@ document.addEventListener('keydown', function(e) {
 
 // Warn before leaving
 window.onbeforeunload = function() {
-  return "Are you sure you want to leave this page?";
+  return "Leaving this page might interrupt the voting process. Are you sure you want to proceed?";
 };
 
 // Request full screen on first click anywhere
