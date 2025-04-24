@@ -20,20 +20,29 @@ try {
 }
 
 exports.handler = async (event) => {
-    console.log("Function invoked!");
-    console.log("FIREBASE_SERVICE_ACCOUNT:", process.env.FIREBASE_SERVICE_ACCOUNT);
-  
-    return {
-      statusCode: 500, // Intentionally returning an error to see the output
-      body: JSON.stringify({ error: "Basic function test", account: process.env.FIREBASE_SERVICE_ACCOUNT ? "Present" : "Missing" }),
-    };
-  };
-  {
-    "name": "voter-details-function", // You can choose any name
-    "version": "1.0.0",
-    "dependencies": {
-      "firebase-admin": "^12.1.0" // Use the latest version or the one you prefer
-    }
+  console.log("Function invoked!");
+  console.log("FIREBASE_SERVICE_ACCOUNT:", process.env.FIREBASE_SERVICE_ACCOUNT);
+
+  const voterId = event.queryStringParameters.voter_id;
+
+  if (!voterId) {
+    return { statusCode: 400, body: JSON.stringify({ error: "Missing voter_id parameter" }) };
   }
 
-  /home/kavinkumar/Projects/update/Scanchain_Verification_Module/netlify/functions
+  try {
+    const docRef = db.collection('Voter detials').doc(voterId);
+    const docSnap = await docRef.get();
+
+    if (docSnap.exists) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify(docSnap.data()),
+      };
+    } else {
+      return { statusCode: 404, body: JSON.stringify({ error: "Voter details not found" }) };
+    }
+  } catch (error) {
+    console.error('Error fetching voter details:', error);
+    return { statusCode: 500, body: JSON.stringify({ error: "Failed to fetch voter details" }) };
+  }
+};
