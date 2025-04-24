@@ -5,4 +5,7 @@ body {
   .card {
     margin-bottom: 20px;
   }
-  
+  footer.small {
+    font-size: 0.8rem;
+    color: #777; /* Example muted color */
+  }
