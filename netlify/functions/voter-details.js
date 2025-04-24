@@ -3,6 +3,9 @@ const admin = require('firebase-admin');
 let db;
 
 try {
+  // Debug: Print the raw environment variable string
+  console.log("Raw FIREBASE_SERVICE_ACCOUNT:", process.env.FIREBASE_SERVICE_ACCOUNT);
+
   if (!admin.apps.length) {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
     admin.initializeApp({
@@ -21,7 +24,7 @@ try {
 
 exports.handler = async (event) => {
   console.log("Function invoked!");
-  console.log("FIREBASE_SERVICE_ACCOUNT:", process.env.FIREBASE_SERVICE_ACCOUNT);
+  console.log("FIREBASE_SERVICE_ACCOUNT:", process.env.FIREBASE_SERVICE_ACCOUNT); // This line is already present
 
   const voterId = event.queryStringParameters.voter_id;
 
@@ -45,7 +48,9 @@ exports.handler = async (event) => {
     console.error('Error fetching voter details:', error);
     return { statusCode: 500, body: JSON.stringify({ error: "Failed to fetch voter details" }) };
   }
-};try {
+};
+
+try {
   console.log("Function invoked!");
   console.log("Environment:", process.env);
 } catch (error) {
