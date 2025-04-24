@@ -22,7 +22,8 @@
     </div>
   </div>
   <!-- Environment variables -->
-
+  <script src="env-vars.js"></script>
+  <script src="env.js"></script>
   <!-- Firebase SDKs -->
   <script src="config.js"></script>
   <script type="module">
@@ -107,43 +108,11 @@
       }
     });
 
-    async function checkActiveStations() {
-      try {
-        const stationsRef = ref(rtdb, "stations");
-        const stationsSnapshot = await get(stationsRef);
-
-        if (!stationsSnapshot.exists()) {
-          return { error: "No stations found in database. Please contact an administrator." };
-        }
-
-        const stationsData = stationsSnapshot.val();
-        const activeStations = Object.entries(stationsData)
-          .filter(([_, data]) => data.session === "active")
-          .map(([id, data]) => ({
-            id,
-            lastActive: data.lastActive || 0,
-            currentVoterIds: data.currentVoterIds || []
-          }));
-
-        if (activeStations.length === 0) {
-          return { error: "No active stations available. Please try again." };
-        }
-
-        // Sort active stations by the number of current voters (ascending)
-        activeStations.sort((a, b) => a.currentVoterIds.length - b.currentVoterIds.length);
-
-        return { activeStations };
-      } catch (error) {
-        console.error("Error checking stations:", error);
-        return { error: "Error checking station status. Please try again." };
-      }
-    }
-
     async function assignToStation() {
       const voterId = localStorage.getItem("voter_id");
       const assignBtn = document.getElementById("assignStationBtn");
       const statusDiv = document.getElementById("upload-status");
-
+      
       try {
         // Clear any previous messages
         const existingAlerts = statusDiv.querySelectorAll('.alert');
@@ -154,9 +123,9 @@
         assignBtn.disabled = true;
         assignBtn.textContent = "Processing...";
 
-        // Check for active stations and sort them by current voter count
+        // Check for active stations
         const { activeStations, error } = await checkActiveStations();
-
+        
         if (error) {
           statusDiv.innerHTML += `
             <div class="alert alert-warning mt-3" id="stationAlert">
@@ -164,18 +133,18 @@
               <button id="retryBtn" class="btn btn-warning mt-2">Retry Now</button>
             </div>
           `;
-
+          
           document.getElementById("retryBtn").addEventListener("click", async () => {
             document.getElementById("stationAlert").remove();
             await assignToStation(); // Recursively call the function
           });
-
+          
           assignBtn.disabled = false;
           assignBtn.textContent = "Assign to Station";
           return;
         }
 
-        // Assign to the station with the fewest current voters
+        // If we have active stations, proceed with assignment
         const selectedStation = activeStations[0];
         const currentTime = Date.now();
 
@@ -190,7 +159,7 @@
         // Update Firestore with verification status
         const voterDoc = await getDoc(doc(db, "Voter detials", voterId));
         const voterData = voterDoc.data();
-
+        
         await setDoc(doc(db, "Voter detials", voterId), {
           ...voterData,
           hasVerified: true,

@@ -1,6 +1,6 @@
 [build]
   publish = "."
-  functions = "netlify/functions" # Explicitly define the functions directory
+  command = "node build.js"
 
 [[redirects]]
   from = "/*"
