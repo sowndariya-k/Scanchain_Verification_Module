@@ -11,23 +11,20 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// Warn before leaving (only if user initiates navigation)
-window.addEventListener('beforeunload', function(event) {
-  // Check if the navigation was NOT initiated by the script
-  if (!event.isTrusted) {
-    return; // Don't show the warning for script-initiated navigations
-  }
+// Warn before leaving
+window.onbeforeunload = function(event) {
+  // Standard practice to check if the event has been prevented
   if (!event.defaultPrevented) {
     return "Leaving this page might interrupt the voting process. Are you sure you want to proceed?";
   }
-});
+};
 
 // Function to check if the document is in fullscreen
 function isFullscreen() {
   return !!(document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
 }
 
-// Function to request fullscreen
+// Request full screen
 function openFullscreen() {
   const elem = document.documentElement;
   if (elem.requestFullscreen) {
