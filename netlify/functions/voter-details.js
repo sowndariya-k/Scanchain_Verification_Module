@@ -45,4 +45,10 @@ exports.handler = async (event) => {
     console.error('Error fetching voter details:', error);
     return { statusCode: 500, body: JSON.stringify({ error: "Failed to fetch voter details" }) };
   }
-};
+};try {
+  console.log("Function invoked!");
+  console.log("Environment:", process.env);
+} catch (error) {
+  console.error("Error logging environment:", error);
+  return { statusCode: 500, body: JSON.stringify({ error: "Error logging environment", details: error.message }) };
+}
