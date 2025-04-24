@@ -28,3 +28,12 @@ exports.handler = async (event) => {
       body: JSON.stringify({ error: "Basic function test", account: process.env.FIREBASE_SERVICE_ACCOUNT ? "Present" : "Missing" }),
     };
   };
+  {
+    "name": "voter-details-function", // You can choose any name
+    "version": "1.0.0",
+    "dependencies": {
+      "firebase-admin": "^12.1.0" // Use the latest version or the one you prefer
+    }
+  }
+
+  /home/kavinkumar/Projects/update/Scanchain_Verification_Module/netlify/functions
