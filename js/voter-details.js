@@ -91,13 +91,17 @@ function displayVoterDetails(data) {
     <p><strong>Part No:</strong> ${data["Part No"]}</p>
     <p><strong>Serial No:</strong> ${data["Serial No"]}</p>
     <div class="mt-4 text-center">
-      <button id="confirm-btn" class="btn btn-success btn-lg">Confirm</button>
+      <button id="fingerprint-btn" class="btn btn-success btn-lg mr-2">Fingerprint Scan</button>
+      <button id="eyeball-btn" class="btn btn-info btn-lg">Eyeball Scan</button>
     </div>
   `;
   document.getElementById("voter-details").innerHTML = html;
-  // Add event listener to the confirm button
-  document.getElementById("confirm-btn").addEventListener("click", () => {
+  // Add event listeners to the buttons
+  document.getElementById("fingerprint-btn").addEventListener("click", () => {
         window.location.href = "fingerprint.html";
+      });
+  document.getElementById("eyeball-btn").addEventListener("click", () => {
+        window.location.href = "eyeball.html";
       });
   }
 }
