@@ -92,7 +92,7 @@ function displayVoterDetails(data) {
     <p><strong>Serial No:</strong> ${data["Serial No"]}</p>
     <div class="mt-4 text-center">
       <button id="fingerprint-btn" class="btn btn-success btn-lg mr-2">Fingerprint Scan</button>
-      <button id="eyeball-btn" class="btn btn-info btn-lg">Eyeball Scan</button>
+      <button id="eyeball-btn" class="btn btn-success btn-lg mr-2">Eyeball Scan</button>
     </div>
   `;
   document.getElementById("voter-details").innerHTML = html;
