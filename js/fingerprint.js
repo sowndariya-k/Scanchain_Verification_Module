@@ -88,12 +88,6 @@ async function assignToStation() {
     if (!boothId) {
         showError("Error: Booth ID not found. Please log in again.");
         return;
-    }else{
-      if(boothId == "B01" || boothId=="B02"){
-        boothId = "booth1";
-      }else{
-        boothId = "booth2";
-      }
     }
 
     try {
