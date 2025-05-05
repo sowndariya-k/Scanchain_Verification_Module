@@ -38,9 +38,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 if (data && data.officerId === officerId && data.password === password) {
-                    localStorage.setItem('booth_id', boothId);
+                    var boothid = (boothId == "B01" || boothId == "B02") ? "booth1" : "booth2";
+                    localStorage.setItem('booth_id', boothid);
                     localStorage.setItem('officer_id', officerId);
                     window.location.href = 'scan.html';
+
                 } else {
                     loginError.style.display = 'block'; // Incorrect Officer ID or Password for this Booth
                 }
