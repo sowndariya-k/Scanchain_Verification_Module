@@ -124,15 +124,14 @@ async function assignToStation() {
         const updatedVoterList = [...activeStation.currentVoterIds, voterId];
 
         // Update the Realtime Database
-        const stationRef = ref(rtdb, `booths/${boothId}/stations/${activeStation.id}`); // Correct path
+        const stationRef = ref(rtdb, `booths/${boothId}/stations/${activeStation.id}`);
         await set(stationRef, {
-            ...activeStation, // Keep existing station data
-            session: "active",
+            ...activeStation,
             lastActive: currentTime,
             currentVoterIds: updatedVoterList
         });
 
-        // Update Firestore with verification status
+        // Update Firestore with verification status,  EXCLUDE assignedStation
         const voterDoc = await getDoc(doc(db, "Voter detials", voterId));
         const voterData = voterDoc.data();
 
@@ -140,7 +139,6 @@ async function assignToStation() {
             ...voterData,
             hasVerified: true,
             verifiedAt: currentTime,
-            assignedStation: activeStation.id // Store assigned station
         });
 
         statusDiv.innerHTML += `
@@ -168,9 +166,9 @@ async function assignToStation() {
     }
 }
 
-async function findActiveStation(boothId) { // Pass boothId
+async function findActiveStation(boothId) {
     try {
-        const stationsRef = ref(rtdb, `booths/${boothId}/stations`); // Correct path to stations
+        const stationsRef = ref(rtdb, `booths/${boothId}/stations`);
         const stationsSnapshot = await get(stationsRef);
 
         if (!stationsSnapshot.exists()) {
@@ -178,27 +176,27 @@ async function findActiveStation(boothId) { // Pass boothId
         }
 
         const stationsData = stationsSnapshot.val();
-        // Convert the stations data into an array of station objects.
         const stationsArray = Object.entries(stationsData).map(([id, data]) => ({
             id,
             ...data,
-            currentVoterIds: data.currentVoterIds || [], // Ensure currentVoterIds exists
+            currentVoterIds: data.currentVoterIds || [],
         }));
 
-        // Filter for inactive stations.
-        const inactiveStations = stationsArray.filter(station => station.session === "inactive");
+        // Filter for active stations
+        const activeStations = stationsArray.filter(station => station.session === "active");
 
-        if (inactiveStations.length === 0) {
-            return { error: "No inactive stations available in this booth. Please try again later." };
+        if (activeStations.length === 0) {
+            return { error: "No active stations available in this booth. Please try again later." };
         }
-        //find the station with the oldest lastActive
-        let oldestStation = inactiveStations[0];
-        for (let i = 1; i < inactiveStations.length; i++) {
-            if (inactiveStations[i].lastActive < oldestStation.lastActive) {
-                oldestStation = inactiveStations[i];
+
+        //  Return the station with the least number of voters
+        let stationWithLeastVoters = activeStations[0];
+        for (let i = 1; i < activeStations.length; i++) {
+            if (activeStations[i].currentVoterIds.length < stationWithLeastVoters.currentVoterIds.length) {
+                stationWithLeastVoters = activeStations[i];
             }
         }
-        return { activeStation: oldestStation };
+        return { activeStation: stationWithLeastVoters };
 
     } catch (error) {
         console.error("Error checking stations:", error);
