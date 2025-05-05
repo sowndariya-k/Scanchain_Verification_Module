@@ -29,7 +29,7 @@ const db = getFirestore(app);
 const voter_id = localStorage.getItem("voter_id");
 if (!voter_id) {
   alert("No voter ID found. Redirecting to login page.");
-  window.location.href = "index.html";
+  window.location.href = "scan.html";
 }
 
 async function fetchVoterDetails(voter_id) {

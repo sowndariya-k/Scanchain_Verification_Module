@@ -199,7 +199,7 @@ function showError(message, showBackButton = false) {
   `;
 
   if (showBackButton) {
-    html += `<br><button onclick="window.location.href='index.html'" class="btn btn-primary mt-3">Go Back</button>`;
+    html += `<br><button onclick="window.location.href='scan.html'" class="btn btn-primary mt-3">Go Back</button>`;
   }
 
   html += `</div>`;
